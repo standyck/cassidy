@@ -1,5 +1,7 @@
 (ns cassidy.shon
-  (:require [hiccup.core :refer [html]])
+  (:require [hiccup.core :refer [html]]
+            [clojure.java.io :as io]
+            [saxon :refer [compile-xml compile-xslt]])
   (:import [java.io PrintWriter]))
 
 (defprotocol SHONWriter
@@ -93,3 +95,7 @@
 
 (defn write-str [x]
   (-write-str x))
+
+(defn pprint [x]
+  (let [transform-fn (compile-xslt (io/resource "Identity.xslt"))]
+    (println (str (transform-fn (compile-xml x))))))
