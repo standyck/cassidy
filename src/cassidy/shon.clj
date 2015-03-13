@@ -3,85 +3,93 @@
   (:import [java.io PrintWriter]))
 
 (defprotocol SHONWriter
-  (-write [object out]
-    "Print object to PrintWriter as SHON"))
+  (-write-str [object]
+    "Print object to as a SHON string."))
 
 
-(defn- write-string [^CharSequence s ^PrintWriter out]
-  (.print out (str s)))
+(defn- write-string [^CharSequence s]
+  (str s))
 
-(defn write-dl [m ^PrintWriter out]
-  (.print
-   out
-   (html [:dl.shon
-          (map #(let [[k v] %]
-                  (when-not (string? k)
-                    (throw (Exception. "SHON dl dt elements must be strings.")))
-                  (html [:dt.field (-write k out)]
-                        [:dd {:class (-write k out)} (-write v out)]))
-               m)])))
+(defn write-dl [m]
+  (html [:dl.shon
+         (map #(let [[k v] %]
+                 (when-not (string? (name k))
+                   (throw (Exception. "SHON dl dt elements must be strings.")))
+                 (html [:dt.field (-write-str k)]
+                       [:dd {:class (-write-str k)} (-write-str v)]))
+              m)]))
 
-(defn write-ol [m ^PrintWriter out])
+(defn write-ol [l]
+  (html [:ol.shon
+         (map #(html [:li (-write-str %)]) l)]))
 
-(defn write-ul [m ^PrintWriter out])
+(defn write-ul [l]
+  (html [:ul.shon
+         (map #(html [:li (-write-str %)]) l)]))
 
 
 
-(defn- write-bignum [x ^PrintWriter out]
-  (.print out (str x)))
+(defn- write-bignum [x]
+  (str x))
 
-(defn- write-float [^Float x ^PrintWriter out]
+(defn- write-float [^Float x]
   (cond (.isInfinite x)
         (throw (Exception. "SHON error: cannot write infinite Float."))
         (.isNaN x)
         (throw (Exception. "SHON error: cannot write Float NaN."))
         :else
-        (.print out x)))
+        (str x)))
 
-(defn- write-double [^Double x ^PrintWriter out]
+(defn- write-double [^Double x]
   (cond (.isInfinite x)
         (throw (Exception. "SHON error: cannot write infinite Double."))
         (.isNaN x)
         (throw (Exception. "SHON error: cannot write Double NaN."))
         :else
-        (.print out x)))
+        (str x)))
 
-(defn- write-plain [x ^PrintWriter out]
-  (.print out x))
+(defn- write-plain [x]
+  (str x))
 
-(defn- write-null [x ^PrintWriter out]
-  (.print out "null"))
+(defn- write-null [x]
+  (str "null"))
 
-(defn- write-named [x out]
-  (write-string (name x) out))
+(defn- write-named [x]
+  (write-string (name x)))
 
-(defn- write-generic [x out]
+(defn- write-generic [x]
   (if (.isArray (class x))
-    (-write (seq x) out)
+    (-write-str (seq x))
     (throw (Exception. (str "Don't know how to write SHON of " (class x))))))
 
-(defn- write-ratio [x out]
-  (-write (double x) out))
+(defn- write-ratio [x]
+  (-write-str (double x)))
 
 ;; nil, true, false
-(extend nil                    SHONWriter {:-write write-null})
-(extend java.lang.Boolean      SHONWriter {:-write write-plain})
+(extend nil                    SHONWriter {:-write-str write-null})
+(extend java.lang.Boolean      SHONWriter {:-write-str write-plain}) ;*
 
 ;; Numbers
-(extend java.lang.Byte         SHONWriter {:-write write-plain})
-(extend java.lang.Short        SHONWriter {:-write write-plain})
-(extend java.lang.Integer      SHONWriter {:-write write-plain})
-(extend java.lang.Long         SHONWriter {:-write write-plain})
-(extend java.lang.Float        SHONWriter {:-write write-float})
-(extend java.lang.Double       SHONWriter {:-write write-double})
-(extend clojure.lang.Ratio     SHONWriter {:-write write-ratio})
-(extend java.math.BigInteger   SHONWriter {:-write write-bignum})
-(extend java.math.BigDecimal   SHONWriter {:-write write-bignum})
-(extend java.util.concurrent.atomic.AtomicInteger SHONWriter {:-write write-plain})
-(extend java.util.concurrent.atomic.AtomicLong SHONWriter {:-write write-plain})
+(extend java.lang.Byte         SHONWriter {:-write-str write-plain}) ;*
+(extend java.lang.Short        SHONWriter {:-write-str write-plain}) ;*
+(extend java.lang.Integer      SHONWriter {:-write-str write-plain}) ;*
+(extend java.lang.Long         SHONWriter {:-write-str write-plain}) ;*
+(extend java.lang.Float        SHONWriter {:-write-str write-float}) ;*
+(extend java.lang.Double       SHONWriter {:-write-str write-double}) ;*
+(extend clojure.lang.Ratio     SHONWriter {:-write-str write-ratio})
+(extend java.math.BigInteger   SHONWriter {:-write-str write-bignum}) ;*
+(extend java.math.BigDecimal   SHONWriter {:-write-str write-bignum}) ;*
+(extend java.util.concurrent.atomic.AtomicInteger SHONWriter {:-write-str write-plain}) ;*
+(extend java.util.concurrent.atomic.AtomicLong SHONWriter {:-write-str write-plain})    ;*
 
 ;; Symbols, Keywords and Strings
-(extend clojure.lang.Named     SHONWriter {:-write write-named})
-(extend java.lang.CharSequence SHONWriter {:-write write-string})
+(extend clojure.lang.Named     SHONWriter {:-write-str write-named})
+(extend java.lang.CharSequence SHONWriter {:-write-str write-string}) ;*
 
-(extend java.lang.Object       SHONWriter {:-write write-generic})
+(extend java.util.Map          SHONWriter {:-write-str write-dl})
+(extend java.util.Collection   SHONWriter {:-write-str write-ul})
+
+(extend java.lang.Object       SHONWriter {:-write-str write-generic})
+
+(defn write-str [x]
+  (-write-str x))
