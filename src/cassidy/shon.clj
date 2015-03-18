@@ -4,6 +4,21 @@
             [saxon :refer [compile-xml compile-xslt]])
   (:import [java.io PrintWriter]))
 
+(defrecord SHONSpecified [tag attrs value])
+
+(def ^{:dynamic true :private true} *key-fn*)
+(def ^{:dynamic true :private true} *value-fn*)
+
+(defn- default-write-key-fn
+  [x]
+  (cond (instance? clojure.lang.Named x)
+        (name x)
+        (nil? x)
+        (throw (Exception. "SHON dl keys may not be nil"))
+        :else (str x)))
+
+(defn default-value-fn [k v] v)
+
 (defprotocol SHONWriter
   (-write-str [object]
     "Print object to as a SHON string."))
@@ -14,11 +29,13 @@
 
 (defn write-dl [m]
   (html [:dl.shon
-         (map #(let [[k v] %]
+         (map #(let [[k v] %
+                     out-key (*key-fn* k)
+                     out-value (*value-fn* k v)]
                  (when-not (string? (name k))
                    (throw (Exception. "SHON dl dt elements must be strings.")))
-                 (html [:dt.field (-write-str k)]
-                       [:dd {:class (-write-str k)} (-write-str v)]))
+                 (html [:dt.field (-write-str out-key)]
+                       [:dd {:class (-write-str out-key)} (-write-str out-value)]))
               m)]))
 
 (defn write-ol [l]
@@ -64,6 +81,14 @@
     (-write-str (seq x))
     (throw (Exception. (str "Don't know how to write SHON of " (class x))))))
 
+(defn write-shon-specified [x]
+  (let [{:keys [tag attrs value]} x
+        v [tag]
+        v (if attrs (conj v attrs) v)
+        v (if value (conj v value) v)
+        _ (println "v: " v)]
+    (html v)))
+
 (defn- write-ratio [x]
   (-write-str (double x)))
 
@@ -88,13 +113,19 @@
 (extend clojure.lang.Named     SHONWriter {:-write-str write-named})
 (extend java.lang.CharSequence SHONWriter {:-write-str write-string}) ;*
 
+(extend cassidy.shon.SHONSpecified SHONWriter {:-write-str write-shon-specified})
 (extend java.util.Map          SHONWriter {:-write-str write-dl})
 (extend java.util.Collection   SHONWriter {:-write-str write-ul})
 
 (extend java.lang.Object       SHONWriter {:-write-str write-generic})
 
-(defn write-str [x]
-  (-write-str x))
+(defn write-str [x & options]
+  (let [{:keys [key-fn value-fn]
+         :or {key-fn default-write-key-fn
+              value-fn default-value-fn}} options]
+    (binding [*key-fn* key-fn
+              *value-fn* value-fn]
+      (-write-str x))))
 
 (defn pprint [x]
   (let [transform-fn (compile-xslt (io/resource "Identity.xslt"))]

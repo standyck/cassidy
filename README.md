@@ -1,10 +1,12 @@
 # cassidy
 
-FIXME: description
+Cassidy is a library for reading and writing SHON documents. SHON stands for Semantic HTML
+Object Notation. Broadly speaking, this is a data format (like JSON or XML) that expresses
+data using plain old HTML.
 
 ## Installation
 
-Download from http://example.com/FIXME.
+Still a work in progress
 
 ## Usage
 
@@ -12,9 +14,6 @@ FIXME: explanation
 
     $ java -jar cassidy-0.1.0-standalone.jar [args]
 
-## Options
-
-FIXME: listing of options this app accepts.
 
 ## Examples
 
@@ -23,10 +22,6 @@ FIXME: listing of options this app accepts.
 ### Bugs
 
 ...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
 
 ## License
 
