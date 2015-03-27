@@ -81,6 +81,9 @@
     (-write-str (seq x))
     (throw (Exception. (str "Don't know how to write SHON of " (class x))))))
 
+(defn- write-hyperlink [x]
+  (html [:a {:href (str x)} (str x)]))
+
 (defn write-shon-specified [x]
   (let [{:keys [tag attrs value]} x
         v [tag]
@@ -117,6 +120,9 @@
 (extend java.util.Map          SHONWriter {:-write-str write-dl})
 (extend java.util.Collection   SHONWriter {:-write-str write-ul})
 
+;; html things
+(extend java.net.URL           SHONWriter {:-write-str write-hyperlink})
+(extend java.net.URI           SHONWriter {:-write-str write-hyperlink})
 (extend java.lang.Object       SHONWriter {:-write-str write-generic})
 
 (defn write-str [x & options]
@@ -127,6 +133,14 @@
               *value-fn* value-fn]
       (-write-str x))))
 
-(defn pprint [x]
-  (let [transform-fn (compile-xslt (io/resource "Identity.xslt"))]
-    (println (str (transform-fn (compile-xml x))))))
+(defn pprint
+  "Pretty prints an object as a SHON string."
+  [x & options]
+  (let [{:keys [key-fn value-fn]
+         :or {key-fn default-write-key-fn
+              value-fn default-value-fn}} options
+              transform-fn (compile-xslt (io/resource "Identity.xslt"))]
+    (if-let [xml (try (compile-xml (write-str x :key-fn key-fn :value-fn value-fn))
+                      (catch Exception e nil))]
+      (println (str (transform-fn xml)))
+      (clojure.pprint/pprint x))))
