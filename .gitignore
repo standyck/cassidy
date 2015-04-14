@@ -9,3 +9,5 @@ pom.xml.asc
 /.nrepl-port
 /.emacs.desktop
 /.emacs.desktop.lock
+/src/cassidy/.#shon.clj
+/test/cassidy/.#core_test.clj

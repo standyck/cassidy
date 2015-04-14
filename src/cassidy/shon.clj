@@ -1,13 +1,15 @@
 (ns cassidy.shon
-  (:require [hiccup.core :refer [html]]
+  (:require [hiccup.core :refer [html h]]
             [clojure.java.io :as io]
-            [saxon :refer [compile-xml compile-xslt]])
+            [saxon :refer [compile-xml compile-xslt]]
+            [clojure.pprint :as pp])
   (:import [java.io PrintWriter]))
-
-(defrecord SHONSpecified [tag attrs value])
 
 (def ^{:dynamic true :private true} *key-fn*)
 (def ^{:dynamic true :private true} *value-fn*)
+
+(defn- printerr [& x]
+  (binding [*out* *err*] (apply println x)))
 
 (defn- default-write-key-fn
   [x]
@@ -20,127 +22,174 @@
 (defn default-value-fn [k v] v)
 
 (defprotocol SHONWriter
-  (-write-str [object]
-    "Print object to as a SHON string."))
+  (-write-str [object element]
+    "Write object as a SHON string inside an HTML element.")
+  (-get-class-attribute [object]
+    "The class attribute to assign when writing the object."))
 
+(defn- h-with-class [x el]
+  (html [el {:class (-get-class-attribute x)} x]))
 
-(defn- write-string [^CharSequence s]
-  (str s))
+(defn- write-null [x el]
+  (html [el {:class (-get-class-attribute x)} "null"]))
 
-(defn write-dl [m]
-  (html [:dl.shon
-         (map #(let [[k v] %
-                     out-key (*key-fn* k)
-                     out-value (*value-fn* k v)]
-                 (when-not (string? (name k))
-                   (throw (Exception. "SHON dl dt elements must be strings.")))
-                 (html [:dt.field (-write-str out-key)]
-                       [:dd {:class (-write-str out-key)} (-write-str out-value)]))
-              m)]))
+(defn- write-unescaped-str [x el]
+  (h-with-class x el))
 
-(defn write-ol [l]
-  (html [:ol.shon
-         (map #(html [:li (-write-str %)]) l)]))
+(defn- write-escaped-string [x el]
+  (h-with-class (h x) el))
 
-(defn write-ul [l]
-  (html [:ul.shon
-         (map #(html [:li (-write-str %)]) l)]))
+(defn- get-classname [x]
+  (.getName (class x)))
 
-
-
-(defn- write-bignum [x]
-  (str x))
-
-(defn- write-float [^Float x]
+(defn- write-float [^Float x el]
   (cond (.isInfinite x)
         (throw (Exception. "SHON error: cannot write infinite Float."))
         (.isNaN x)
         (throw (Exception. "SHON error: cannot write Float NaN."))
         :else
-        (str x)))
+        (h-with-class x el)))
 
-(defn- write-double [^Double x]
+(defn- write-double [^Double x el]
   (cond (.isInfinite x)
         (throw (Exception. "SHON error: cannot write infinite Double."))
         (.isNaN x)
         (throw (Exception. "SHON error: cannot write Double NaN."))
         :else
-        (str x)))
+        (h-with-class x el)))
 
-(defn- write-plain [x]
-  (str x))
+(defn- write-ratio [x el]
+  (-write-str (double x) el))
 
-(defn- write-null [x]
-  (str "null"))
+(defn- write-named [x el]
+  (-write-str (name x) el))
 
-(defn- write-named [x]
-  (write-string (name x)))
+(defn- write-ol [coll el]
+  (html [el
+         [:ol.SHON
+         (map #(-write-str (*value-fn* nil %) :li) coll)]]))
 
-(defn- write-generic [x]
+(defn- write-ul [coll el]
+  (html [el
+         [:ul.SHON
+         (map #(-write-str (*value-fn* nil %) :li) coll)]]))
+
+(defn- write-dl [m el]
+  (html [el
+         [:dl.SHON
+         (map #(let [[k v] %
+                     out-key (*key-fn* k)
+                     out-value (*value-fn* k v)]
+                 (when-not (string? (name k))
+                   (throw (Exception. "SHON dl dt elements must be strings.")))
+                 (html [:dt.field (h out-key)] (-write-str out-value :dd)))
+              m)]]))
+
+(defn- write-generic [x el]
   (if (.isArray (class x))
-    (-write-str (seq x))
+    (-write-str (seq x) el)
     (throw (Exception. (str "Don't know how to write SHON of " (class x))))))
 
-(defn- write-hyperlink [x]
-  (html [:a {:href (str x)} (str x)]))
+(defn- write-hyperlink [x el]
+  (html [el [:a {:href (str x)} (str x)]]))
 
-(defn write-shon-specified [x]
-  (let [{:keys [tag attrs value]} x
-        v [tag]
-        v (if attrs (conj v attrs) v)
-        v (if value (conj v value) v)
-        _ (println "v: " v)]
-    (html v)))
-
-(defn- write-ratio [x]
-  (-write-str (double x)))
+(def shon-number (constantly "SHON.number"))
 
 ;; nil, true, false
-(extend nil                    SHONWriter {:-write-str write-null})
-(extend java.lang.Boolean      SHONWriter {:-write-str write-plain}) ;*
+(extend nil                    SHONWriter
+        {:-write-str write-null :-get-class-attribute shon-number})
+(extend java.lang.Boolean      SHONWriter
+        {:-write-str write-unescaped-str :-get-class-attribute (constantly "SHON.boolean")})
 
 ;; Numbers
-(extend java.lang.Byte         SHONWriter {:-write-str write-plain}) ;*
-(extend java.lang.Short        SHONWriter {:-write-str write-plain}) ;*
-(extend java.lang.Integer      SHONWriter {:-write-str write-plain}) ;*
-(extend java.lang.Long         SHONWriter {:-write-str write-plain}) ;*
-(extend java.lang.Float        SHONWriter {:-write-str write-float}) ;*
-(extend java.lang.Double       SHONWriter {:-write-str write-double}) ;*
-(extend clojure.lang.Ratio     SHONWriter {:-write-str write-ratio})
-(extend java.math.BigInteger   SHONWriter {:-write-str write-bignum}) ;*
-(extend java.math.BigDecimal   SHONWriter {:-write-str write-bignum}) ;*
-(extend java.util.concurrent.atomic.AtomicInteger SHONWriter {:-write-str write-plain}) ;*
-(extend java.util.concurrent.atomic.AtomicLong SHONWriter {:-write-str write-plain})    ;*
+(extend java.lang.Byte         SHONWriter
+        {:-write-str write-unescaped-str :-get-class-attribute shon-number})
+(extend java.lang.Short        SHONWriter
+        {:-write-str write-unescaped-str :-get-class-attribute shon-number})
+(extend java.lang.Integer      SHONWriter
+        {:-write-str write-unescaped-str :-get-class-attribute shon-number})
+(extend java.lang.Long         SHONWriter
+        {:-write-str write-unescaped-str :-get-class-attribute shon-number})
+(extend java.lang.Float        SHONWriter
+          {:-write-str write-float :-get-class-attribute shon-number})
+(extend java.lang.Double       SHONWriter
+          {:-write-str write-double :-get-class-attribute shon-number})
+(extend clojure.lang.Ratio     SHONWriter
+          {:-write-str write-ratio :-get-class-attribute shon-number})
+(extend java.math.BigInteger   SHONWriter
+        {:-write-str write-unescaped-str :-get-class-attribute shon-number})
+(extend java.math.BigDecimal   SHONWriter
+        {:-write-str write-unescaped-str :-get-class-attribute shon-number})
+(extend java.util.concurrent.atomic.AtomicInteger SHONWriter
+        {:-write-str write-unescaped-str :-get-class-attribute shon-number})
+(extend java.util.concurrent.atomic.AtomicLong    SHONWriter
+        {:-write-str write-unescaped-str :-get-class-attribute shon-number})
 
 ;; Symbols, Keywords and Strings
-(extend clojure.lang.Named     SHONWriter {:-write-str write-named})
-(extend java.lang.CharSequence SHONWriter {:-write-str write-string}) ;*
+(extend clojure.lang.Named     SHONWriter
+        {:-write-str write-named :-get-class-attribute (constantly nil)})
+(extend java.lang.Character    SHONWriter
+        {:-write-str write-escaped-string :-get-class-attribute (constantly nil)})
+(extend java.lang.CharSequence SHONWriter
+        {:-write-str write-escaped-string :-get-class-attribute (constantly nil)})
 
-(extend cassidy.shon.SHONSpecified SHONWriter {:-write-str write-shon-specified})
-(extend java.util.Map          SHONWriter {:-write-str write-dl})
-(extend java.util.Collection   SHONWriter {:-write-str write-ul})
+(extend java.util.Map SHONWriter
+        {:-write-str write-dl :-get-class-attribute (constantly "SHON")})
+(extend java.util.List         SHONWriter
+        {:-write-str write-ol
+         :-get-class-attribute (constantly "SHON")})
+(extend java.util.Collection   SHONWriter
+        {:-write-str write-ul
+         :-get-class-attribute (constantly "SHON")})
 
 ;; html things
-(extend java.net.URL           SHONWriter {:-write-str write-hyperlink})
-(extend java.net.URI           SHONWriter {:-write-str write-hyperlink})
-(extend java.lang.Object       SHONWriter {:-write-str write-generic})
+(extend java.net.URL           SHONWriter
+        {:-write-str write-hyperlink :-get-class-attribute (constantly nil)})
+(extend java.net.URI           SHONWriter
+        {:-write-str write-hyperlink :-get-class-attribute (constantly nil)})
+(extend java.lang.Object       SHONWriter
+        {:-write-str write-generic
+         :-get-class-attribute (constantly "SHON")})
 
-(defn write-str [x & options]
+(defn- parse-options [options]
   (let [{:keys [key-fn value-fn]
-         :or {key-fn default-write-key-fn
-              value-fn default-value-fn}} options]
+           :or {key-fn default-write-key-fn
+                value-fn default-value-fn}} options]
+      [key-fn value-fn]))
+
+(defn write-str
+  "Converts x into a SHON string. The value of x can be anything though if it is
+  or contains  an unsupported object an exception will be thrown asking for a
+  handler function.
+
+  The options available are as follows:
+
+  :key-fn - For Maps: a function (fn [k]) of the key. The returned value will
+  be substituted for the input key.
+  :value-fn - For Maps, Lists and other Collections: A function (fn [k v]) of the
+  key and value. The returned value will be substituted for the input value."
+  [x & options]
+  (let [[key-fn value-fn] (parse-options options)]
     (binding [*key-fn* key-fn
               *value-fn* value-fn]
-      (-write-str x))))
+      (-write-str x :div))))
 
 (defn pprint
-  "Pretty prints an object as a SHON string."
+  "Pretty prints an object as a SHON string. Options are the same as in
+  write-str."
   [x & options]
-  (let [{:keys [key-fn value-fn]
-         :or {key-fn default-write-key-fn
-              value-fn default-value-fn}} options
-              transform-fn (compile-xslt (io/resource "Identity.xslt"))]
+  (let [[key-fn value-fn] (parse-options options)
+        transform-fn (compile-xslt (io/resource "Identity.xslt"))]
     (if-let [xml (try (compile-xml (write-str x :key-fn key-fn :value-fn value-fn))
-                      (catch Exception e nil))]
+                      (catch Exception e (printerr (.getMessage e))))]
       (println (str (transform-fn xml)))
-      (clojure.pprint/pprint x))))
+      (pp/pprint x))))
+
+(defn wrap-in-page [x & options]
+  (let [[key-fn value-fn] (parse-options options)
+        shon (write-str x :key-fn key-fn :value-fn value-fn)]
+    (html [:html
+           [:head
+            [:title "SHON Document"]
+            [:link {:type "text/css" :rel "stylesheet" :href "shon.css"}]]  ;TODO make this an option.
+           [:body shon]])))
