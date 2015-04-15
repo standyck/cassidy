@@ -1,4 +1,4 @@
-(defproject cassidy "0.1.0"
+(defproject cassidy "0.2.0-SNAPSHOTz"
   :description "A SHON read and write library."
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
