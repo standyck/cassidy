@@ -153,11 +153,11 @@
          :-get-class-attribute (constantly "SHON")})
 
 (defn- parse-options [options]
-  (let [{:keys [key-fn value-fn el]
+  (let [{:keys [key-fn value-fn root-element]
            :or {key-fn default-write-key-fn
                 value-fn default-value-fn
-                el :div}} options]
-      [key-fn value-fn el]))
+                root-element :div}} options]
+      [key-fn value-fn root-element]))
 
 (defn write-str
   "Converts x into a SHON string. The value of x can be anything though if it is
@@ -169,7 +169,10 @@
   :key-fn - For Maps: a function (fn [k]) of the key. The returned value will
   be substituted for the input key.
   :value-fn - For Maps, Lists and other Collections: A function (fn [k v]) of the
-  key and value. The returned value will be substituted for the input value."
+  key and value. The returned value will be substituted for the input value.
+  :root-element - Specifies the root element under which the x value will appear. By
+  default it will be a div element and regardless of what it is it will have a class
+  attribute of 'shonroot'."
   [x & options]
   (let [[key-fn value-fn el] (parse-options options)]
     (binding [*key-fn* key-fn

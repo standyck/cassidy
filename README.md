@@ -4,9 +4,11 @@ Cassidy is a library for reading and writing SHON documents. SHON stands for Sem
 Object Notation. Broadly speaking, this is a data format (like JSON or XML) that expresses
 data using plain old HTML.
 
+The library currently only writes SHON documents. A parser is next on the list of things to do.
+
 ## Installation
 
-Still a work in progress
+Still a work in progress. 
 
 ## Usage
 
