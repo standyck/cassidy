@@ -153,10 +153,11 @@
          :-get-class-attribute (constantly "SHON")})
 
 (defn- parse-options [options]
-  (let [{:keys [key-fn value-fn]
+  (let [{:keys [key-fn value-fn el]
            :or {key-fn default-write-key-fn
-                value-fn default-value-fn}} options]
-      [key-fn value-fn]))
+                value-fn default-value-fn
+                el :div}} options]
+      [key-fn value-fn el]))
 
 (defn write-str
   "Converts x into a SHON string. The value of x can be anything though if it is
@@ -170,18 +171,18 @@
   :value-fn - For Maps, Lists and other Collections: A function (fn [k v]) of the
   key and value. The returned value will be substituted for the input value."
   [x & options]
-  (let [[key-fn value-fn] (parse-options options)]
+  (let [[key-fn value-fn el] (parse-options options)]
     (binding [*key-fn* key-fn
               *value-fn* value-fn]
-      (-write-str x :div.shon.root))))
+      (-write-str x (keyword (str (name el) ".shonroot"))))))
 
 (defn pprint
   "Pretty prints an object as a SHON string. Options are the same as in
   write-str."
   [x & options]
-  (let [[key-fn value-fn] (parse-options options)
+  (let [[key-fn value-fn el] (parse-options options)
         transform-fn (compile-xslt (io/resource "Identity.xslt"))]
-    (if-let [xml (try (compile-xml (write-str x :key-fn key-fn :value-fn value-fn))
+    (if-let [xml (try (compile-xml (write-str x :key-fn key-fn :value-fn value-fn :el el))
                       (catch Exception e (printerr (.getMessage e))))]
       (println (str (transform-fn xml)))
       (pp/pprint x))))
