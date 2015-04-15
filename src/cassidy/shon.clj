@@ -66,17 +66,17 @@
 
 (defn- write-ol [coll el]
   (html [el
-         [:ol.SHON
+         [:ol {:class (-get-class-attribute coll)}
          (map #(-write-str (*value-fn* nil %) :li) coll)]]))
 
 (defn- write-ul [coll el]
   (html [el
-         [:ul.SHON
+         [:ul {:class (-get-class-attribute coll)}
          (map #(-write-str (*value-fn* nil %) :li) coll)]]))
 
 (defn- write-dl [m el]
   (html [el
-         [:dl.SHON
+         [:dl {:class (-get-class-attribute m)}
          (map #(let [[k v] %
                      out-key (*key-fn* k)
                      out-value (*value-fn* k v)]
@@ -94,6 +94,7 @@
   (html [el [:a {:href (str x)} (str x)]]))
 
 (def shon-number (constantly "SHON.number"))
+(def shon-collection (constantly "SHON.collection"))
 
 ;; nil, true, false
 (extend nil                    SHONWriter
@@ -134,13 +135,13 @@
         {:-write-str write-escaped-string :-get-class-attribute (constantly nil)})
 
 (extend java.util.Map SHONWriter
-        {:-write-str write-dl :-get-class-attribute (constantly "SHON")})
+        {:-write-str write-dl :-get-class-attribute shon-collection})
 (extend java.util.List         SHONWriter
         {:-write-str write-ol
-         :-get-class-attribute (constantly "SHON")})
+         :-get-class-attribute shon-collection})
 (extend java.util.Collection   SHONWriter
         {:-write-str write-ul
-         :-get-class-attribute (constantly "SHON")})
+         :-get-class-attribute shon-collection})
 
 ;; html things
 (extend java.net.URL           SHONWriter
@@ -172,7 +173,7 @@
   (let [[key-fn value-fn] (parse-options options)]
     (binding [*key-fn* key-fn
               *value-fn* value-fn]
-      (-write-str x :div))))
+      (-write-str x :div.shon.root))))
 
 (defn pprint
   "Pretty prints an object as a SHON string. Options are the same as in
