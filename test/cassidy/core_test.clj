@@ -66,9 +66,8 @@
   (-get-class-attribute [_] "stand.Img")
   (-write-str [img el]
     (html [el {:class (shon/-get-class-attribute img)}
-           [:div.image
            [:p [:label "Source URL: "] [:code (:src img)]]
-            [:img {:src (:src img) :alt (:alt-text img) :title (:alt-text img)}]]])))
+           [:img {:src (:src img) :alt (:alt-text img) :title (:alt-text img)}]])))
 
 ;;; We can even extend an existing java object with a custom representation. Let's use UUID as an example.
 (extend-protocol shon/SHONWriter
@@ -78,6 +77,37 @@
     (html [el {:class (shon/-get-class-attribute uuid)}
            [:label "UUID: "]
            [:span (str uuid)]])))
+
+;;; Let's do a custom format that is useful. Try an hCard address microformat
+(defrecord Adr [street-address locality region postal-code country-name]
+  shon/SHONWriter
+  (-get-class-attribute [_] "adr")
+  (-write-str [adr el]
+    (html [el {:class (shon/-get-class-attribute adr)}
+           [:div.street-address (:street-address adr)]
+           [:span.locality (:locality adr) ", "]
+           [:span.region (:region adr) ", "]
+           [:span.postal-code (:postal-code adr) " "]
+           [:span.country-name (:country-name adr)]])))
+
+(defrecord HCard [fn org email adr tel]
+  shon/SHONWriter
+  (-get-class-attribute [_] "shon.vcard")
+  (-write-str [hcard el]
+    (html [el {:class (shon/-get-class-attribute hcard)}
+           [:div.vcard
+            [:span.fn (:fn hcard)]
+            [:div.org (:org hcard)]
+            [:a.email {:href (str "mailto:" (:email hcard))} (:email hcard)]
+            (shon/write-str adr)
+            [:div.tel (:tel hcard)]]])))
+
+(def stan (->HCard "Stan Dyck"
+                   "Quest Diagnostics"
+                   "stan.dyck@medplus.com"
+                   (->Adr "8801 6th Av NW"
+                          "Seattle" "WA" "98117" "USA")
+                   "206-419-8059"))
 
 ;;; A macro that turned this (below) into the extend-protocol form above would be useful.
 #_(defshon-representation UUID [uuid]
@@ -98,7 +128,8 @@
     (let [bp (BPReading. 125 70)
           img (Image. "http://placekitten.com/g/300/450" "A Cute Kitten")
           uuid (java.util.UUID/randomUUID)
-          m {:bp-reading bp :image img :uuid uuid}]
+          m {:bp-reading bp :image img :uuid uuid
+             :hcard stan}]
       (println "bp:" bp)
       (println "img:" img)
       (shon/pprint m)
