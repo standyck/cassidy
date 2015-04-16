@@ -95,7 +95,7 @@
 
 (def shon-nil (constantly "SHON.null"))
 (def shon-number (constantly "SHON.number"))
-(def shon-collection (constantly "SHON.collection"))
+(def shon-collection (constantly nil))
 
 ;; nil, true, false
 (extend nil                    SHONWriter
