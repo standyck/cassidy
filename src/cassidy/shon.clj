@@ -93,12 +93,13 @@
 (defn- write-hyperlink [x el]
   (html [el [:a {:href (str x)} (str x)]]))
 
+(def shon-nil (constantly "SHON.null"))
 (def shon-number (constantly "SHON.number"))
-(def shon-collection (constantly "SHON.collection"))
+(def shon-collection (constantly nil))
 
 ;; nil, true, false
 (extend nil                    SHONWriter
-        {:-write-str write-null :-get-class-attribute shon-number})
+        {:-write-str write-null :-get-class-attribute shon-nil})
 (extend java.lang.Boolean      SHONWriter
         {:-write-str write-unescaped-str :-get-class-attribute (constantly "SHON.boolean")})
 
@@ -185,7 +186,7 @@
   [x & options]
   (let [[key-fn value-fn el] (parse-options options)
         transform-fn (compile-xslt (io/resource "Identity.xslt"))]
-    (if-let [xml (try (compile-xml (write-str x :key-fn key-fn :value-fn value-fn :el el))
+    (if-let [xml (try (compile-xml (write-str x :key-fn key-fn :value-fn value-fn :root-element el))
                       (catch Exception e (printerr (.getMessage e))))]
       (println (str (transform-fn xml)))
       (pp/pprint x))))
