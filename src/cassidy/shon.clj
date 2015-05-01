@@ -191,7 +191,10 @@
       (println (str (transform-fn xml)))
       (pp/pprint x))))
 
-(defn wrap-in-page [x & options]
+(defn wrap-in-page
+  "Creates a bare-bones html page with the value of x embedded in the body tag. Options
+  are the same as in write-str."
+  [x & options]
   (let [[key-fn value-fn] (parse-options options)
         shon (write-str x :key-fn key-fn :value-fn value-fn)]
     (html [:html
