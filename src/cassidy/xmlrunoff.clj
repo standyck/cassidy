@@ -1,5 +1,4 @@
-(ns cassidy.xmlrunoff
-  (:require [saxon :as saxon]))
+(ns cassidy.xmlrunoff)
 
 
 (def saxon-testfile (saxon/compile-xml (java.io.File. "resources/testshon.html")))
