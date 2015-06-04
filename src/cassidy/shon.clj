@@ -1,9 +1,8 @@
 (ns cassidy.shon
-  (:require [hiccup.core :refer [html h]]
-            [clojure.java.io :as io]
-            [saxon :refer [compile-xml compile-xslt]]
-            [clojure.pprint :as pp])
-  (:import [java.io PrintWriter]))
+  (:require [clojure.java.io :as io]
+            [clojure.pprint :as pp]
+            [hiccup.core :refer [h html]]
+            [saxon :refer [compile-xml compile-xslt]]))
 
 (def ^{:dynamic true :private true} *key-fn*)
 (def ^{:dynamic true :private true} *value-fn*)
@@ -154,11 +153,12 @@
          :-get-class-attribute (constantly "SHON")})
 
 (defn- parse-options [options]
-  (let [{:keys [key-fn value-fn root-element]
+  (let [{:keys [key-fn value-fn root-element root?]
            :or {key-fn default-write-key-fn
                 value-fn default-value-fn
-                root-element :div}} options]
-      [key-fn value-fn root-element]))
+                root-element :div
+                root? true}} options]
+      [key-fn value-fn root-element root?]))
 
 (defn write-str
   "Converts x into a SHON string. The value of x can be anything though if it is
@@ -175,25 +175,33 @@
   default it will be a div element and regardless of what it is it will have a class
   attribute of 'shonroot'."
   [x & options]
-  (let [[key-fn value-fn el] (parse-options options)]
+  (let [[key-fn value-fn el root?] (parse-options options)]
     (binding [*key-fn* key-fn
               *value-fn* value-fn]
-      (-write-str x (keyword (str (name el) ".shonroot"))))))
+      (-write-str x (keyword (str (name el) (if root? ".shonroot")))))))
 
 (defn pprint
   "Pretty prints an object as a SHON string. Options are the same as in
   write-str."
   [x & options]
-  (let [[key-fn value-fn el] (parse-options options)
+  (let [[key-fn value-fn el root?] (parse-options options)
         transform-fn (compile-xslt (io/resource "Identity.xslt"))]
-    (if-let [xml (try (compile-xml (write-str x :key-fn key-fn :value-fn value-fn :root-element el))
+    (if-let [xml (try (compile-xml (write-str x
+                                              :key-fn key-fn
+                                              :value-fn value-fn
+                                              :root-element el
+                                              :root? root?))
                       (catch Exception e (printerr (.getMessage e))))]
       (println (str (transform-fn xml)))
       (pp/pprint x))))
 
-(defn wrap-in-page [x & options]
-  (let [[key-fn value-fn] (parse-options options)
-        shon (write-str x :key-fn key-fn :value-fn value-fn)]
+(defn wrap-in-page
+  "Creates a bare-bones html page with the value of x embedded in the body tag. Options
+  are the same as in write-str."
+  [x & options]
+  (let [[key-fn value-fn el root?] (parse-options options)
+        shon (write-str x :key-fn key-fn :value-fn value-fn
+                        :root-element el :root? root?)]
     (html [:html
            [:head
             [:title "SHON Document"]
