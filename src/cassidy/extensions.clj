@@ -8,8 +8,8 @@
   (-get-class-attribute [_] "SHON.Table")
   (-write-str [table el]
     (let [{:keys [recs caption column-order :or {column-order (keys (first recs))}]} table
-          headers (keys (first recs))
-          row-data (map vals recs)]
+          headers column-order
+          row-data (map #(map (fn [k] (get % k)) headers) recs)]
       (html [el {:class (-get-class-attribute table)}
              [:table
               [:caption caption]
