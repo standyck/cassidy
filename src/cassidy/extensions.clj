@@ -1,6 +1,7 @@
 (ns cassidy.extensions
   "Extra SHONWriter implementations that may be of use."
-  (:require [cassidy.shon :refer [SHONWriter -get-class-attribute write-str]]
+  (:require [cassidy.shon :refer [-get-class-attribute SHONWriter
+                                  write-str]]
             [hiccup.core :refer [html]]))
 
 (defrecord Table [recs caption column-order]

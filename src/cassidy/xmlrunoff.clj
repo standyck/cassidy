@@ -1,9 +1,10 @@
-(ns cassidy.xmlrunoff)
+(ns cassidy.xmlrunoff
+  (:require [saxon :refer [compile-xml compile-xslt query]]))
 
 
-(def saxon-testfile (saxon/compile-xml (java.io.File. "resources/testshon.html")))
+(def saxon-testfile (compile-xml (java.io.File. "resources/testshon.html")))
 
-(def top-level (saxon/query "//body//*[@class='shonroot']" saxon-testfile))
+(def top-level (query "//body//*[@class='shonroot']" saxon-testfile))
 
 (defmacro defsaxon-fn
   "Creates a named function that takes an XdmNode and returns the value
@@ -12,7 +13,7 @@
   (let [query-with-nil-handling
         (fn [xp node]
           (if (instance? net.sf.saxon.s9api.XdmNode node)
-            (saxon/query xp node)))]
+            (query xp node)))]
     `(def ~fn-name (partial ~query-with-nil-handling ~xpath))))
 
 (defsaxon-fn context-node-name "name()")
