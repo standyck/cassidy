@@ -79,7 +79,7 @@
          (map #(let [[k v] %
                      out-key (*key-fn* k)
                      out-value (*value-fn* k v)]
-                 (when-not (string? (name k))
+                 (when-not (string? (name out-key))
                    (throw (Exception. "SHON dl dt elements must be strings.")))
                  (html [:dt.field (h out-key)] (-write-str out-value :dd)))
               m)]]))

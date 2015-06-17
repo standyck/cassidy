@@ -1,4 +1,4 @@
-(defproject cassidy "0.2.1"
+(defproject cassidy "0.2.2"
   :description "A SHON read and write library."
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
