@@ -18,3 +18,12 @@
               (map #(html [:tr (map (fn [v] (html [:td (write-str v)])) %)]) row-data)]]))))
 
 (def tab (->Table [{:a 1 :b 2} {:a 10 :b 20}] "Simple Table" nil))
+
+(defrecord Link [href text rel]
+  SHONWriter
+  (-get-class-attribute [_] "SHON.Link")
+  (-write-str [link el]
+    (html [:a {:class (-get-class-attribute link)
+                :rel  (:rel link)
+                :href (:href link)}
+            (if (:text link) (:text link) (:href link))])))
