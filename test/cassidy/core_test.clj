@@ -129,7 +129,7 @@
           img (Image. "http://placekitten.com/g/300/450" "A Cute Kitten")
           uuid (java.util.UUID/randomUUID)
           m {:bp-reading bp :image img :uuid uuid
-             :hcard stan}]
+             :hcard [stan stan]}]
       (println "bp:" bp)
       (println "img:" img)
       (shon/pprint m)

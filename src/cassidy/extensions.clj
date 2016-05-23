@@ -15,7 +15,9 @@
              [:table
               [:caption caption]
               [:tr (map #(html [:th %]) headers)]
-              (map #(html [:tr (map (fn [v] (html [:td (write-str v)])) %)]) row-data)]]))))
+              (map #(html [:tr
+                           (map (fn [v] (html (write-str v :root-element :td :root? false))) %)])
+                   row-data)]]))))
 
 (def tab (->Table [{:a 1 :b 2} {:a 10 :b 20}] "Simple Table" nil))
 
@@ -23,7 +25,8 @@
   SHONWriter
   (-get-class-attribute [_] "SHON.Link")
   (-write-str [link el]
-    (html [:a {:class (-get-class-attribute link)
+    (html [el
+           [:a {:class (-get-class-attribute link)
                 :rel  (:rel link)
                 :href (:href link)}
-            (if (:text link) (:text link) (:href link))])))
+            (if (:text link) (:text link) (:href link))]])))
