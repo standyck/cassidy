@@ -1,5 +1,6 @@
 (ns cassidy.xmlrunoff
-  (:require [saxon :refer [compile-xml compile-xslt query]]))
+  (:require [saxon :refer [compile-xml compile-xslt query]]
+            [clojure.java.io :as io]))
 
 
 (def saxon-testfile (compile-xml (java.io.File. "resources/testshon.html")))
@@ -23,3 +24,7 @@
   (let [node-name (context-node-name shon-node)]
     (if (seq node-name)
       (keyword node-name))))
+
+(defn pretty-print [xml]
+  (let [identity-xform (compile-xslt (io/resource "Identity.xslt"))]
+    (println (str (identity-xform (compile-xml xml))))))
