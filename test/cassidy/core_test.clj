@@ -2,7 +2,8 @@
   (:require [clojure.test :refer :all]
             [cassidy.shon :as shon]
             [hiccup.core :refer [html]]
-            [clojure.pprint :refer [pprint]])
+            [clojure.pprint :refer [pprint]]
+            [cassidy.extensions :refer :all])
   (:import [java.util.concurrent.atomic AtomicLong AtomicInteger]
            [java.net URL URI]))
 
@@ -129,9 +130,16 @@
           img (Image. "http://placekitten.com/g/300/450" "A Cute Kitten")
           uuid (java.util.UUID/randomUUID)
           m {:bp-reading bp :image img :uuid uuid
-             :hcard stan}]
+             :hcard [stan stan]}]
       (println "bp:" bp)
       (println "img:" img)
       (shon/pprint m)
       ;; Take a look
       (spit (java.io.File. "resources/testcustomshon.html") (shon/wrap-in-page m)))))
+
+(deftest write-a-table
+  (testing "create a table"
+    (let [t [{:col1 "string" :col2 3 :col3 (->Link "http://www.google.com" "Google" nil)}
+             {:col1 "zing" :col2 5 :col3 "amen"}]
+          tab (->Table t "caption" nil)]
+      (spit (java.io.File. "resources/testshontable.html") (shon/wrap-in-page tab)))))
