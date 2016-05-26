@@ -101,7 +101,7 @@
             [:span.fn (:fn hcard)]
             [:div.org (:org hcard)]
             [:a.email {:href (str "mailto:" (:email hcard))} (:email hcard)]
-            (shon/write-str adr)
+            (shon/write-str adr :root? false)
             [:div.tel (:tel hcard)]]])))
 
 (def stan (->HCard "Stan Dyck"
