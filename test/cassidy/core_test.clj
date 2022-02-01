@@ -122,10 +122,10 @@
 
 (deftest write-test-file
   (testing "create a test file"
-    (spit (java.io.File. "resources/test/testshon.html")
+    (spit (java.io.File. "resources/testshon.html")
           (shon/wrap-in-page [multi-map (vals multi-map)]))
     (is (= (slurp (io/file "resources/baseline/testshon.html"))
-           (slurp (io/file "resources/test/testshon.html"))))))
+           (slurp (io/file "resources/testshon.html"))))))
 
 (deftest custom-write
   (testing "We can define our own output."
@@ -134,15 +134,15 @@
           uuid (java.util.UUID. 123456789 987654321)
           m {:bp-reading bp :image img :uuid uuid
              :hcard [stan stan]}]
-      (spit (java.io.File. "resources/test/testcustomshon.html") (shon/wrap-in-page m))
+      (spit (java.io.File. "resources/testcustomshon.html") (shon/wrap-in-page m))
       (is (= (slurp (io/file "resources/baseline/testcustomshon.html"))
-             (slurp (io/file "resources/test/testcustomshon.html")))))))
+             (slurp (io/file "resources/testcustomshon.html")))))))
 
 (deftest write-a-table
   (testing "create a table"
     (let [t [{:col1 "string" :col2 3 :col3 (->Link "http://www.google.com" "Google" nil)}
              {:col1 "zing" :col2 5 :col3 "amen"}]
           tab (->Table t "caption" nil)]
-      (spit (java.io.File. "resources/test/testshontable.html") (shon/wrap-in-page tab))
+      (spit (java.io.File. "resources/testshontable.html") (shon/wrap-in-page tab))
       (is (= (slurp (io/file "resources/baseline/testshontable.html"))
-             (slurp (io/file "resources/test/testshontable.html")))))))
+             (slurp (io/file "resources/testshontable.html")))))))
